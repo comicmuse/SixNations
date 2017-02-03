@@ -4,13 +4,12 @@
         ""
     ],
     "companyName": "comicmuse",
-    "longName": "Six Nations 2016",
+    "longName": "Six Nations 2017",
     "projectType": "pebblejs",
     "resources": {
         "media": [
             {
                 "file": "images/menu_icon.png",
-                "menuIcon": true,
                 "name": "IMAGE_MENU_ICON",
                 "type": "bitmap"
             },
@@ -28,18 +27,24 @@
                 "file": "fonts/UbuntuMono-Regular.ttf",
                 "name": "MONO_FONT_14",
                 "type": "font"
+            },
+            {
+                "file": "images/rugby.png",
+                "menuIcon": true,
+                "name": "IMAGES_RUGBY_PNG",
+                "type": "png"
             }
         ]
     },
     "sdkVersion": "3",
-    "shortName": "Six Nations 2016",
+    "shortName": "Six Nations 2017",
     "targetPlatforms": [
         "aplite",
         "basalt"
     ],
     "uuid": "1a7c6318-20fa-480f-9970-4c98927e2d66",
     "versionCode": 1,
-    "versionLabel": "2.0",
+    "versionLabel": "3.0",
     "watchapp": {
         "hiddenApp": false,
         "watchface": false

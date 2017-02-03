@@ -1,6 +1,6 @@
 /**
  * Pebble RWC 2015 app by Colm Linehan
- * v1.3
+ * v2.1
  *
  */
 
@@ -8,6 +8,15 @@ var UI = require('ui');
 var ajax = require('ajax');
 var Vector2 = require('vector2');
 var Vibe = require('ui/vibe');
+
+Pebble.timelineSubscribe('6nations', 
+  function () { 
+    console.log('Subscribed to 6nations');
+  }, 
+  function (errorString) { 
+    console.log('Error subscribing to topic: ' + errorString);
+  }
+);
 
 
 //Identify platform
@@ -50,7 +59,7 @@ reloadfrontpage();
 
 function reloadfrontpage () {
 // Get the schedule of matches
-  var URL = 'http://cmsapi.pulselive.com/rugby/event/1622/schedule?language=en';
+  var URL = 'http://cmsapi.pulselive.com/rugby/event/1623/schedule?language=en';
 ajax(
   {
     url: URL,
@@ -61,12 +70,26 @@ ajax(
     console.log('Successfully fetched match schedule');
     var text ='';
     var i=0;
-  
+    
+    var day = new Date().getDay();
+    
+    if (data.matches[0].status == 'U') //The competition hasn't started yet TODO -change this to weekday view
+      {
+        //branch to the Next Match page
+        weekdayview(data.matches[i], data.matches[i+1], data.matches[i+2]);
+      }
     while (i<data.matches.length && data.matches[i].status == 'C')
       {
         i++;
       }
     //There is no current match
+    
+    //Is it a weekday? If so, use the weekday view
+    if (day>0 && day <6) 
+      {
+        weekdayview(data.matches[i], data.matches[i+1], data.matches[i+2]);
+      }    
+    
     if (data.matches[i].status == 'U')
       {
         notinplay(data.matches[i-1], data.matches[i]);
@@ -101,7 +124,7 @@ ajax(
 }
 
 function inplay(matchId) {
-  var window = new UI.Window({fullscreen: true});
+  var window = new UI.Window({status: true});
   //Set up some variables
   var team1, team2;
   var playerlist = new Array();
@@ -319,27 +342,30 @@ function inplay(matchId) {
 }
 
 function notinplay(match1, match2) {
-  var window = new UI.Window({fullscreen: false});
-//Stupid hack - should really check if the match we're looking for is the first match in the tournament
-  if (match1 >= 22565)
+  var window = new UI.Window();
+  //Stupid hack - should really check if the match we're looking for is the first match in the tournament
+  var lastgamelayer;
+  
+  if (match1 !== null) {
+    lastgamelayer = new UI.Text ({
+      position: new Vector2(0,0),
+      size: new Vector2(144, 65),
+      font: 'gothic-24-bold',
+      text: '\n' + match1.teams[0].abbreviation + ' ' + match1.scores[0] + '-' + match1.scores[1] +' ' + match1.teams[1].abbreviation,
+      textAlign: 'center',
+      backgroundColor: 'white',
+      color: 'black'
+    });
+  } else
     {
-  var lastgamelayer = new UI.Text ({
-    position: new Vector2(0,0),
-    size: new Vector2(144, 65),
-    font: 'gothic-24-bold',
-    text: '\n' + match1.teams[0].abbreviation + ' ' + match1.scores[0] + '-' + match1.scores[1] +' ' + match1.teams[1].abbreviation,
-    textAlign: 'center',
-    backgroundColor: 'white',
-    color: 'black'
-  });
-        if (current_watch.platform == 'basalt') {
-
-    lastgamelayer.backgroundColor('islamicGreen');
-    lastgamelayer.color('white');
-        }
-      window.add(lastgamelayer);
-
+    lastgamelayer = new UI.Text ({
+      position: new Vector2(0,0),
+      size: new Vector2(144, 65),
+      backgroundColor: 'white',
+      color: 'black'
+          });
     }
+  
   var nextgamelayer = new UI.Text ({
     position: new Vector2(0,65),
     size: new Vector2(144, 100),
@@ -351,11 +377,13 @@ function notinplay(match1, match2) {
   });
   //override for colour support
   if (current_watch.platform == 'basalt') {
-
+    lastgamelayer.backgroundColor('islamicGreen');
+    lastgamelayer.color('white');
     nextgamelayer.backgroundColor('blue');
     nextgamelayer.color('white');
   }
-  
+
+  window.add(lastgamelayer);
   window.add(nextgamelayer);
   console.log('set up schedule window');
   card.hide();
@@ -363,8 +391,81 @@ function notinplay(match1, match2) {
   console.log('showing schedule window');  
 }
 
+
+function weekdayview(match1, match2, match3) {
+  var match1day = match1.time.label.substring(0,3);
+    var match2day = match2.time.label.substring(0,3);
+    var match3day = match3.time.label.substring(0,3);
+  
+  
+  var match1time = match1.time.label.split(" GMT")[0].split("2017, ")[1];
+  var match2time = match2.time.label.split(" GMT")[0].split("2017, ")[1];
+  var match3time = match3.time.label.split(" GMT")[0].split("2017, ")[1];
+
+  var match1cet ='';
+  var match2cet ='';
+  var match3cet = '';
+  
+  if ( match1.time.label.split(" GMT")[1]=="+01:00")  match1cet='*';
+  if ( match2.time.label.split(" GMT")[1]=="+01:00")  match2cet='*';
+  if ( match3.time.label.split(" GMT")[1]=="+01:00")  match3cet='*';
+  
+  
+  var window = new UI.Window();
+  var match1layer = new UI.Text ({
+    position: new Vector2(0,0),
+    size: new Vector2(144, 56),
+    font: 'gothic-24-bold',
+    text: match1.teams[0].abbreviation + ' v ' + match1.teams[1].abbreviation + '\n'  + match1day + ' ' + match1time + match1cet,  
+    textAlign: 'center',
+    backgroundColor: 'black',
+    color: 'white'    
+  });
+  var match2layer = new UI.Text ({
+    position: new Vector2(0,56),
+    size: new Vector2(144, 56),
+    font: 'gothic-24-bold',
+    text:  match2.teams[0].abbreviation + ' v ' + match2.teams[1].abbreviation + '\n' + ' ' + match2day + ' '+ match2time  + match2cet,  
+    textAlign: 'center',
+    backgroundColor: 'white',
+    color: 'black'    
+  });
+  var match3layer = new UI.Text ({
+    position: new Vector2(0,112),
+    size: new Vector2(144, 56),
+    font: 'gothic-24-bold',
+    text: match3.teams[0].abbreviation + ' v ' + match3.teams[1].abbreviation + '\n' + ' ' + match3day + match3time + match3cet ,  
+    textAlign: 'center',
+    backgroundColor: 'black',
+    color: 'white'    
+  });
+  
+  
+  //override for colour support
+  if (current_watch.platform == 'basalt') {
+    match1layer.backgroundColor('islamicGreen');
+    match1layer.color('white');
+    match2layer.backgroundColor('blue');
+    match2layer.color('white');
+    match3layer.backgroundColor('islamicGreen');
+    match3layer.color('white');
+  }
+  
+  
+  
+  window.add(match1layer);
+  window.add(match3layer);
+  window.add(match2layer);
+  console.log('set up schedule window');
+  card.hide();
+  window.show();
+  console.log('showing schedule window');  
+}
+
+
+
 function comingup(data, matchId, matchIndex) {
-  var window = new UI.Window({fullscreen: false});
+  var window = new UI.Window();
 
   var cominguplayer = new UI.Text ({
     position: new Vector2(0,0),
